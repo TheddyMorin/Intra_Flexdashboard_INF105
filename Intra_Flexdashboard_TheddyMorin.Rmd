@@ -1,0 +1,220 @@
+---
+title: "Les Taux de Change en Haiti"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(tidyverse)
+library(plotly)
+library(readxl)
+library(DT)
+```
+
+```{r read}
+data1 <- read_excel("data.1.xlsx")
+data2 <- read_excel("data.2.xlsx")
+data1 <- data1[,-4]
+data2 <- data2[,-4]
+data2 <- data2[-c(8:10),]
+Numeric.Variables = c("ACHATS", "VENTES")
+Categorical.Variables = c("Banques")
+data3 <- slice(data1,c(1,3,6)) 
+Numeric.Variables1 = c("ACHATS", "VENTES")
+Categorical.Variables1 = c("Secteurs")
+```
+
+```{r summary}
+max_tauxA <- max(data2$'ACHATS', na.rm=TRUE)
+max_tauxV <- max(data2$'VENTES', na.rm=TRUE)
+min_tauxA <- min(data2$'ACHATS', na.rm=TRUE)
+min_tauxV <- min(data2$'VENTES', na.rm=TRUE)
+```
+
+# Les Taux Bancaires
+
+Row
+-----------------------------------------------------------------------
+
+### Taux maximal à l'achat
+
+```{r}
+articles <- max_tauxA
+valueBox(articles, icon = "fa-tachometer")
+```
+
+### Taux maximal à la vente
+
+```{r}
+comments <- max_tauxV
+valueBox(comments, icon = "fa-pencil", color = "lightGreen")
+```
+
+### Taux minimal à l'achat
+
+```{r}
+articles <- min_tauxA
+valueBox(articles, icon = "fa-calendar", color = "lightblue")
+```
+
+### Taux minimal à la vente 
+
+```{r}
+comments <- min_tauxV
+valueBox(comments, icon = "fa-comments", color = "green")
+```
+
+Column{.sidebar data-width=250}
+-----------------------------------------------------------------------
+
+Intéragissez avec le menu afin de visualiser tantôt le taux de change à l'achat, tantôt à la vente au niveau des Banques Haitiennes
+
+```{r}
+selectInput("Numeric_Variables", label = "Sélectionner le type de taux au niveau des Banques:", choices = Numeric.Variables)
+
+selectInput("Categorical_Variables", label = "", choices = Categorical.Variables)
+```
+
+Row {data-width=400}
+-----------------------------------------------------------------------
+
+### Taux de change respectif des différents banques
+
+```{r}
+renderPlotly({
+  plot_ly(data2,
+          x = ~data2[[input$Numeric_Variables]],
+          color = ~data2[[input$Categorical_Variables]],
+          colors = "Paired",
+          type = "bar") %>%
+    layout(title = "Taux de change des differentes Banques",
+           xaxis = list(little = "",
+                        zeroline = FALSE))
+})
+```
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+### Analyse Graphique de la fréquence des taux de change parmi les Banques
+
+```{r}
+renderPlotly({
+  data2 %>%
+    count(var = data2[[input$Numeric_Variables]], name = "count") %>%
+    plot_ly( x = ~var, y = ~ count, type = "bar", marker = list(color = 'input$color',
+                        line = list(color = 'input$color', width = 2)), hoverinfo = "x+y") %>%
+    add_text(text = ~paste0( " (", scales::percent(count/sum(count)),")"),
+             textposition = "bottom",
+             textfront = FALSE) %>%
+    layout(xaxis = list(title = ""), yaxis = list(title =""))
+  
+})
+```
+
+# Les Taux au niveau de certains secteurs d'activité
+
+Row
+-----------------------------------------------------------------------
+
+### Taux à l'achat du MARCHÉ INFORMEL
+
+```{r}
+articles <- data3[1,2]
+valueBox(articles, icon = "fa-calendar")
+```
+
+### Taux à la vente du MARCHÉ INFORMEL
+
+```{r}
+articles <- data3[1,3]
+valueBox(articles, icon = "fa-tachometer", color = "green")
+```
+
+### TAUX DE RÉFÉRENCE
+
+```{r}
+comments <- data3[3,2]
+valueBox(comments, icon = "fa-pencil", color = "lightblue")
+```
+
+Column{.sidebar data-width=250}
+-----------------------------------------------------------------------
+
+Intéragissez avec le menu afin de visualiser tantôt le taux de change à l'achat, tantôt à la vente au niveau de certains secteurs d'activité clefs.
+
+```{r}
+selectInput("Numeric_Variables1", label = "Sélectionner le type de taux au niveau de certains secteurs:", choices = Numeric.Variables1)
+
+selectInput("Categorical_Variables1", label = "", choices = Categorical.Variables1)
+```
+
+Column {data-width=650, .tabset}
+-----------------------------------------------------------------------
+
+### Visualisation du Taux
+
+```{r}
+renderPlotly({
+  plot_ly(data3,
+          x = ~data3[[input$Numeric_Variables1]],
+          color = ~data3[[input$Categorical_Variables1]],
+          colors = "Paired",
+          type = "histogram") %>%
+    layout(title = "Taux de change des differentes Banques",
+           xaxis = list(little = "",
+                        zeroline = FALSE))
+})
+```
+
+### Autre observation graphique
+
+```{r}
+renderPlotly({
+  plot_ly(data3,
+          x = ~data3[[input$Numeric_Variables1]],
+          color = ~data3[[input$Categorical_Variables1]],
+          colors = "Paired",
+          type = "violin") %>%
+    layout(title = "Taux de change des differentes Banques",
+           xaxis = list(little = "",
+                        zeroline = FALSE))
+})
+```
+
+# Les Données
+
+Column {data-width=650, .tabset}
+-----------------------------------------------------------------------
+
+### Données relatives aux Banques
+
+```{r}
+datatable(
+  data2,
+  extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'print')
+  )
+)
+```
+
+### Données relatives aux Secteurs
+
+```{r}
+datatable(
+  data3,
+  extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'print')
+  )
+)
+```
+
+
+
